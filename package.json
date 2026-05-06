@@ -1,0 +1,13 @@
+{
+  "name": "applicationbloc",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "cd front/blogs && npm start",
+    "dev": "cd front/blogs && npm run dev",
+    "front": "cd front/blogs && npm start",
+    "back": "cd back/blogs/noteflow-backend && php artisan serve"
+  },
+  "dependencies": {
+    "node.js": "^0.0.1-security"
+  }
+}
