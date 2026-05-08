@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { C, font, GOOGLE_FONTS, PRIORITY } from "./theme/theme.js";
 
 const API = "http://localhost:8000/api";
-const PORDER = { haute:1, moyenne:1, basse:2 };
 
 export default function NotesPage({ token, user, onLogout }) {
   const [notes, setNotes]           = useState([]);
@@ -77,7 +76,7 @@ export default function NotesPage({ token, user, onLogout }) {
 
   const sorted = [...notes]
     .filter(n => filter === "all" || n.priority === filter)
-    .sort((a,b) => PORDER[a.priority] - PORDER[b.priority]);
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   const fmtDate = (str) => new Date(str).toLocaleDateString("fr-FR", { day:"numeric", month:"short", year:"numeric" });
 
@@ -149,10 +148,10 @@ export default function NotesPage({ token, user, onLogout }) {
         {/* ── Stats ── */}
         <div style={s.statsGrid}>
           {[
-            { label:"Total notes", value:counts.total,   color:C.navy,    bg:"#EEF0F5", icon:"📋" },
-            { label:"Haute",       value:counts.haute,   color:C.terra,   bg:C.terraLight, icon:"▲" },
+            { label:"Total notes", value:counts.total,   color:C.navy,      bg:"#EEF0F5",    icon:"📋" },
+            { label:"Haute",       value:counts.haute,   color:C.terra,     bg:C.terraLight, icon:"▲" },
             { label:"Moyenne",     value:counts.moyenne, color:C.blushDark, bg:C.blushLight, icon:"●" },
-            { label:"Basse",       value:counts.basse,   color:C.teal,    bg:C.tealLight, icon:"▼" },
+            { label:"Basse",       value:counts.basse,   color:C.teal,      bg:C.tealLight,  icon:"▼" },
           ].map((st,i) => (
             <div key={i} style={{ ...s.statCard, background:st.bg }}>
               <div style={{ ...s.statIconWrap, color:st.color }}>{st.icon}</div>
@@ -229,12 +228,15 @@ export default function NotesPage({ token, user, onLogout }) {
           </div>
         )}
 
-        {/* ── Section header + filters ── */}
+        {/* ── Section header + filtres par priorité (BONUS) ── */}
         <div style={s.secHdr}>
-          <h3 style={s.secTitle}>Mes notes</h3>
+          <div>
+            <h3 style={s.secTitle}>Mes notes</h3>
+          </div>
           <div style={s.filterRow}>
+            <span style={s.filterLabel}>Filtrer :</span>
             {[
-              { k:"all",    label:"Toutes" },
+              { k:"all",     label:"Toutes" },
               { k:"haute",   label:"▲ Haute" },
               { k:"moyenne", label:"● Moyenne" },
               { k:"basse",   label:"▼ Basse" },
@@ -270,7 +272,7 @@ export default function NotesPage({ token, user, onLogout }) {
               const pc = PRIORITY[note.priority] || PRIORITY.basse;
               return (
                 <div key={note.id} style={{ ...s.noteCard, borderTopColor:pc.color }}>
-                  {/* Priority stripe */}
+                  {/* Bande colorée selon la priorité */}
                   <div style={{ ...s.noteStripe, background:pc.color }}/>
 
                   <div style={s.noteInner}>
@@ -366,7 +368,9 @@ const s = {
   btnCancelForm: { padding:"10px", background:"#EEF0F5", color:C.textMuted, border:"none", borderRadius:10, fontSize:14, cursor:"pointer" },
 
   secHdr:   { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:12 },
-  secTitle: { fontFamily:font.display, fontSize:26, color:C.navy },
+  secTitle: { fontFamily:font.display, fontSize:26, color:C.navy, marginBottom:2 },
+  secSub:   { fontSize:12, color:C.textLight, fontStyle:"italic" },
+  filterLabel: { fontSize:13, color:C.textMuted, fontWeight:500, marginRight:4 },
   filterRow:{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" },
   fBtn:     { padding:"7px 16px", background:C.white, color:C.textMuted, border:`1px solid ${C.border}`, borderRadius:20, cursor:"pointer", fontSize:13, fontWeight:500, transition:"all 0.2s" },
   fBtnActive: { background:C.navy, color:C.white, borderColor:C.navy },

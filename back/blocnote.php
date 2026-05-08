@@ -1,3 +1,5 @@
+/* This PHP code snippet is a Laravel migration file. In Laravel, migrations are used to modify the
+database schema over time. */
 <?php
 
 use Illuminate\Database\Migrations\Migration;

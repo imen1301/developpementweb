@@ -9,10 +9,6 @@ use App\Models\Note;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Peupler la base avec un utilisateur de test et des notes d'exemple.
-     * Exécuter : php artisan db:seed
-     */
     public function run(): void
     {
         // --- Utilisateur de test ---
