@@ -3,6 +3,56 @@ import { C, font, GOOGLE_FONTS, PRIORITY } from "./theme/theme.js";
 
 const API = "http://localhost:8000/api";
 
+// ─── Export note as PDF ───────────────────────────────────────────────────────
+const exportNotePDF = (note) => {
+  const pc = PRIORITY[note.priority] || PRIORITY.basse;
+  const date = new Date(note.created_at).toLocaleDateString("fr-FR", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <title>${note.title}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Inter:wght@400;500;600&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #fff; color: #212e53; padding: 60px; }
+    .header { border-bottom: 3px solid ${pc.color}; padding-bottom: 20px; margin-bottom: 32px; }
+    .brand { font-size: 13px; font-weight: 600; letter-spacing: 2px; color: #888; text-transform: uppercase; margin-bottom: 12px; }
+    h1 { font-family: 'Playfair Display', serif; font-size: 32px; color: #212e53; line-height: 1.3; }
+    .meta { display: flex; align-items: center; gap: 16px; margin-top: 14px; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: ${pc.bg}; color: ${pc.text}; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: ${pc.color}; }
+    .date { font-size: 13px; color: #999; }
+    .content { font-size: 16px; line-height: 1.9; color: #444; white-space: pre-wrap; }
+    .footer { margin-top: 60px; font-size: 11px; color: #ccc; text-align: center; }
+    @media print { body { padding: 40px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">NoteFlow</div>
+    <h1>${note.title}</h1>
+    <div class="meta">
+      <span class="badge"><span class="dot"></span>${pc.label}</span>
+      <span class="date">${date}</span>
+    </div>
+  </div>
+  ${note.content ? `<div class="content">${note.content}</div>` : "<p style='color:#bbb;font-style:italic'>Aucun contenu.</p>"}
+  <div class="footer">Exporté depuis NoteFlow</div>
+  <script>window.onload = () => { window.print(); }<\/script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, "_blank");
+  if (win) win.focus();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+};
+
 export default function NotesPage({ token, user, onLogout }) {
   const [notes, setNotes]           = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -33,8 +83,11 @@ export default function NotesPage({ token, user, onLogout }) {
 
   useEffect(() => { fetchNotes(); }, []);
 
+  // ── titre vide → bouton bloqué ─────────────────────────────────────────────
+  const isTitleEmpty = !form.title.trim();
+
   const handleSave = async () => {
-    if (!form.title.trim())      { showToast("Le titre est obligatoire.", "error"); return; }
+    if (isTitleEmpty)            { showToast("Le titre est obligatoire.", "error"); return; }
     if (form.title.length > 100) { showToast("Titre trop long (max 100 car.).", "error"); return; }
     try {
       const url    = editingId ? `${API}/notes/${editingId}` : `${API}/notes`;
@@ -218,7 +271,16 @@ export default function NotesPage({ token, user, onLogout }) {
                 </div>
 
                 <div style={s.formActions}>
-                  <button style={s.btnSave} onClick={handleSave}>
+                  {/* ── Bouton bloqué si titre vide ── */}
+                  <button
+                    style={{
+                      ...s.btnSave,
+                      ...(isTitleEmpty ? s.btnSaveDisabled : {}),
+                    }}
+                    onClick={handleSave}
+                    disabled={isTitleEmpty}
+                    title={isTitleEmpty ? "Veuillez saisir un titre" : ""}
+                  >
                     {editingId ? "Enregistrer" : "Ajouter →"}
                   </button>
                   <button style={s.btnCancelForm} onClick={resetForm}>Annuler</button>
@@ -228,7 +290,7 @@ export default function NotesPage({ token, user, onLogout }) {
           </div>
         )}
 
-        {/* ── Section header + filtres par priorité (BONUS) ── */}
+        {/* ── Section header + filtres ── */}
         <div style={s.secHdr}>
           <div>
             <h3 style={s.secTitle}>Mes notes</h3>
@@ -272,9 +334,7 @@ export default function NotesPage({ token, user, onLogout }) {
               const pc = PRIORITY[note.priority] || PRIORITY.basse;
               return (
                 <div key={note.id} style={{ ...s.noteCard, borderTopColor:pc.color }}>
-                  {/* Bande colorée selon la priorité */}
                   <div style={{ ...s.noteStripe, background:pc.color }}/>
-
                   <div style={s.noteInner}>
                     <div style={s.noteHead}>
                       <div style={{ ...s.noteBadge, background:pc.bg, color:pc.text, borderColor:pc.border }}>
@@ -292,6 +352,17 @@ export default function NotesPage({ token, user, onLogout }) {
                         <svg width="12" height="12" fill="none" viewBox="0 0 12 12"><path d="M1 11l2-1 7-7-1-1-7 7-1 2z" stroke={C.teal} strokeWidth="1.2" strokeLinejoin="round"/></svg>
                         Modifier
                       </button>
+
+                      {/* ── Bouton Export PDF ── */}
+                      <button style={s.btnPdf} onClick={() => exportNotePDF(note)}>
+                        <svg width="12" height="12" fill="none" viewBox="0 0 12 12">
+                          <path d="M2 1h6l2 2v8H2V1z" stroke={C.blushDark} strokeWidth="1.2" strokeLinejoin="round"/>
+                          <path d="M7 1v3h3" stroke={C.blushDark} strokeWidth="1.2" strokeLinejoin="round"/>
+                          <path d="M4 6h4M4 8h2" stroke={C.blushDark} strokeWidth="1" strokeLinecap="round"/>
+                        </svg>
+                        PDF
+                      </button>
+
                       <button style={s.btnDel} onClick={() => setConfirmDel(note.id)}>
                         <svg width="12" height="12" fill="none" viewBox="0 0 12 12"><path d="M2 4h8M5 4V3a1 1 0 012 0v1m2 0l-.5 6H3.5L3 4" stroke={C.terra} strokeWidth="1.2" strokeLinecap="round"/></svg>
                         Supprimer
@@ -311,10 +382,10 @@ export default function NotesPage({ token, user, onLogout }) {
 const s = {
   bg: { minHeight:"100vh", background:C.offwhite, fontFamily:font.body, position:"relative" },
 
-  toast: { position:"fixed", top:20, left:"50%", transform:"translateX(-50%)", padding:"12px 26px", borderRadius:30, color:C.white, fontWeight:600, fontSize:14, zIndex:9999, boxShadow:"0 8px 30px rgba(0,0,0,0.12)", animation:"slideIn 0.3s ease", whiteSpace:"nowrap" },
+  toast: { position:"fixed", top:20, left:"50%", transform:"translateX(-50%)", padding:"12px 26px", borderRadius:30, color:C.white, fontWeight:600, fontSize:14, zIndex:9999, boxShadow:"0 8px 30px rgba(0,0,0,0.12)", whiteSpace:"nowrap" },
 
   overlay: { position:"fixed", inset:0, background:"rgba(33,46,83,0.45)", backdropFilter:"blur(6px)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:9000 },
-  modal: { background:C.white, borderRadius:20, padding:"36px 32px", textAlign:"center", maxWidth:380, width:"90%", boxShadow:"0 20px 60px rgba(33,46,83,0.18)", animation:"fadeUp 0.3s ease" },
+  modal: { background:C.white, borderRadius:20, padding:"36px 32px", textAlign:"center", maxWidth:380, width:"90%", boxShadow:"0 20px 60px rgba(33,46,83,0.18)" },
   modalIconWrap: { width:60, height:60, borderRadius:"50%", background:C.terraLight, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" },
   modalTitle: { fontFamily:font.display, fontSize:22, color:C.navy, marginBottom:8 },
   modalDesc: { fontSize:14, color:C.textMuted, lineHeight:1.6, marginBottom:24 },
@@ -339,7 +410,7 @@ const s = {
   statNum:   { fontSize:26, fontFamily:font.display, lineHeight:1 },
   statLabel: { fontSize:12, color:C.textMuted, marginTop:3 },
 
-  formCard: { background:C.white, border:`1px solid ${C.border}`, borderRadius:18, padding:"24px 28px", marginBottom:32, boxShadow:"0 4px 20px rgba(33,46,83,0.06)", animation:"fadeUp 0.3s ease" },
+  formCard: { background:C.white, border:`1px solid ${C.border}`, borderRadius:18, padding:"24px 28px", marginBottom:32, boxShadow:"0 4px 20px rgba(33,46,83,0.06)" },
   formHdr:  { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, paddingBottom:16, borderBottom:`1px solid ${C.border}` },
   formHdrLeft: { display:"flex", alignItems:"center", gap:10 },
   formHdrIcon: { width:32, height:32, borderRadius:8, background:C.tealLight, display:"flex", alignItems:"center", justifyContent:"center" },
@@ -364,12 +435,26 @@ const s = {
   checkMark: { marginLeft:"auto", color:C.teal, fontWeight:700 },
 
   formActions: { marginTop:"auto", display:"flex", flexDirection:"column", gap:8, paddingTop:8 },
-  btnSave:       { padding:"12px", background:`linear-gradient(135deg,${C.teal},${C.tealDark})`, color:C.white, border:"none", borderRadius:10, fontSize:14, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 14px ${C.teal}40` },
+
+  // Bouton Ajouter actif
+  btnSave: {
+    padding:"12px",
+    background:`linear-gradient(135deg,${C.teal},${C.tealDark})`,
+    color:C.white, border:"none", borderRadius:10, fontSize:14, fontWeight:600,
+    cursor:"pointer", boxShadow:`0 4px 14px ${C.teal}40`, transition:"all 0.2s",
+  },
+  // Bouton Ajouter désactivé (titre vide)
+  btnSaveDisabled: {
+    background:"#D0D4E0",
+    boxShadow:"none",
+    cursor:"not-allowed",
+    opacity:0.7,
+  },
+
   btnCancelForm: { padding:"10px", background:"#EEF0F5", color:C.textMuted, border:"none", borderRadius:10, fontSize:14, cursor:"pointer" },
 
   secHdr:   { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:12 },
   secTitle: { fontFamily:font.display, fontSize:26, color:C.navy, marginBottom:2 },
-  secSub:   { fontSize:12, color:C.textLight, fontStyle:"italic" },
   filterLabel: { fontSize:13, color:C.textMuted, fontWeight:500, marginRight:4 },
   filterRow:{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" },
   fBtn:     { padding:"7px 16px", background:C.white, color:C.textMuted, border:`1px solid ${C.border}`, borderRadius:20, cursor:"pointer", fontSize:13, fontWeight:500, transition:"all 0.2s" },
@@ -378,7 +463,7 @@ const s = {
 
   grid: { display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:18 },
 
-  noteCard: { background:C.white, border:`1px solid ${C.border}`, borderTop:"3px solid", borderRadius:14, overflow:"hidden", display:"flex", transition:"transform 0.15s, box-shadow 0.15s", position:"relative", boxShadow:"0 2px 10px rgba(33,46,83,0.05)", animation:"fadeUp 0.3s ease" },
+  noteCard: { background:C.white, border:`1px solid ${C.border}`, borderTop:"3px solid", borderRadius:14, overflow:"hidden", display:"flex", transition:"transform 0.15s, box-shadow 0.15s", position:"relative", boxShadow:"0 2px 10px rgba(33,46,83,0.05)" },
   noteStripe: { width:4, flexShrink:0 },
   noteInner: { flex:1, padding:"18px 18px 14px", display:"flex", flexDirection:"column", gap:8 },
   noteHead:  { display:"flex", justifyContent:"space-between", alignItems:"center" },
@@ -387,8 +472,13 @@ const s = {
   noteDate:  { fontSize:11, color:C.textLight },
   noteTitle: { fontSize:15, fontWeight:600, color:C.navy, lineHeight:1.45 },
   noteContent: { fontSize:13, color:C.textMuted, lineHeight:1.7, flex:1 },
-  noteFoot:  { display:"flex", gap:8, paddingTop:10, borderTop:`1px solid ${C.border}`, marginTop:4 },
+  noteFoot:  { display:"flex", gap:8, paddingTop:10, borderTop:`1px solid ${C.border}`, marginTop:4, flexWrap:"wrap" },
+
   btnEdit: { display:"flex", alignItems:"center", gap:5, padding:"6px 12px", background:C.tealLight, color:C.tealDark, border:`1px solid ${C.sage}`, borderRadius:8, cursor:"pointer", fontSize:12, fontWeight:500 },
+
+  // Bouton PDF
+  btnPdf: { display:"flex", alignItems:"center", gap:5, padding:"6px 12px", background:C.blushLight, color:C.blushDark, border:"1px solid #E8C0D0", borderRadius:8, cursor:"pointer", fontSize:12, fontWeight:500 },
+
   btnDel:  { display:"flex", alignItems:"center", gap:5, padding:"6px 12px", background:C.terraLight, color:C.terraDark, border:"1px solid #F0C0C0", borderRadius:8, cursor:"pointer", fontSize:12, fontWeight:500 },
 
   emptyState: { display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"80px 20px", textAlign:"center" },
