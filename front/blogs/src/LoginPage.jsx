@@ -3,18 +3,31 @@ import { C, font, GOOGLE_FONTS } from "./theme/theme.js";
 
 const API = "http://localhost:8000/api";
 
+// ── Hook pour détecter mobile ──────────────────────────────────────────────
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useState(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  });
+  return isMobile;
+};
+
 export default function LoginPage({ onLogin, goToRegister }) {
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
+  const [form, setForm]       = useState({ email: "", password: "" });
+  const [error, setError]     = useState("");
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState("");
+  const isMobile              = useIsMobile();
 
   const handleSubmit = async () => {
     if (!form.email || !form.password) { setError("Veuillez remplir tous les champs."); return; }
     setLoading(true); setError("");
     try {
-      const res = await fetch(`${API}/login`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+      const res  = await fetch(`${API}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify(form),
       });
       const data = await res.json();
@@ -30,15 +43,20 @@ export default function LoginPage({ onLogin, goToRegister }) {
     <div style={s.bg}>
       <style>{GOOGLE_FONTS}</style>
 
-      {/* Decorative shapes */}
       <div style={s.shape1} />
       <div style={s.shape2} />
       <div style={s.shape3} />
 
-      <div style={s.wrapper}>
+      <div style={{ ...s.wrapper, flexDirection: isMobile ? "column" : "row" }}>
+
         {/* ── Left panel ── */}
-        <div style={s.left}>
-          <div style={s.leftContent}>
+        <div style={{
+          ...s.left,
+          flex: isMobile ? "none" : "0 0 46%",
+          padding: isMobile ? "32px 24px" : "56px",
+          minHeight: isMobile ? "auto" : "100vh",
+        }}>
+          <div style={{ ...s.leftContent, gap: isMobile ? 24 : 44 }}>
 
             <div style={s.brand}>
               <div style={s.brandIcon}>
@@ -53,30 +71,47 @@ export default function LoginPage({ onLogin, goToRegister }) {
               <span style={s.brandName}>NoteFlow</span>
             </div>
 
-            <div style={s.heroBlock}>
-              <p style={s.heroEyebrow}>Bienvenue</p>
-              <h1 style={s.heroH1}>Capturez.<br/><em>Organisez.</em><br/>Réussissez.</h1>
-              <p style={s.heroSub}>Votre espace de notes personnel, sécurisé et toujours disponible.</p>
-            </div>
+            {/* Sur mobile on cache le bloc hero détaillé */}
+            {!isMobile && (
+              <>
+                <div style={s.heroBlock}>
+                  <p style={s.heroEyebrow}>Bienvenue</p>
+                  <h1 style={s.heroH1}>Capturez.<br/><em>Organisez.</em><br/>Réussissez.</h1>
+                  <p style={s.heroSub}>Votre espace de notes personnel, sécurisé et toujours disponible.</p>
+                </div>
+                <div style={s.pillsRow}>
+                  {["Priorités visuelles", "Accès sécurisé", "Interface rapide"].map((t, i) => (
+                    <div key={i} style={s.pill}>{t}</div>
+                  ))}
+                </div>
+                <div style={s.quoteCard}>
+                  <p style={s.quoteText}>« Une bonne note vaut mieux qu'une mauvaise mémoire. »</p>
+                </div>
+              </>
+            )}
 
-            <div style={s.pillsRow}>
-              {["Priorités visuelles", "Accès sécurisé", "Interface rapide"].map((t, i) => (
-                <div key={i} style={s.pill}>{t}</div>
-              ))}
-            </div>
-
-            <div style={s.quoteCard}>
-              <p style={s.quoteText}>« Une bonne note vaut mieux qu'une mauvaise mémoire. »</p>
-            </div>
+            {/* Sur mobile : slogan court */}
+            {isMobile && (
+              <div>
+                <h1 style={{ ...s.heroH1, fontSize: 28, marginBottom: 4 }}>
+                  Capturez. <em>Organisez.</em>
+                </h1>
+                <p style={{ ...s.heroSub, fontSize: 13 }}>Votre espace notes sécurisé.</p>
+              </div>
+            )}
           </div>
         </div>
 
         {/* ── Right panel (form) ── */}
-        <div style={s.right}>
-          <div style={s.formCard}>
+        <div style={{
+          ...s.right,
+          padding: isMobile ? "28px 20px 40px" : "48px 64px",
+          flex: isMobile ? "1" : "1",
+        }}>
+          <div style={{ ...s.formCard, maxWidth: isMobile ? "100%" : 420 }}>
             <div style={s.formTop}>
               <p style={s.formEyebrow}>Connexion</p>
-              <h2 style={s.formTitle}>Bon retour 👋</h2>
+              <h2 style={{ ...s.formTitle, fontSize: isMobile ? 28 : 36 }}>Bon retour 👋</h2>
               <p style={s.formSub}>Entrez vos identifiants pour accéder à vos notes.</p>
             </div>
 
@@ -137,58 +172,43 @@ export default function LoginPage({ onLogin, goToRegister }) {
 
 const s = {
   bg: { minHeight:"100vh", background:C.offwhite, display:"flex", alignItems:"stretch", position:"relative", overflow:"hidden", fontFamily:font.body },
-
   shape1: { position:"absolute", width:500, height:500, borderRadius:"50%", background:`radial-gradient(circle, ${C.sage}55 0%, transparent 65%)`, top:-180, left:-120, pointerEvents:"none" },
-  shape2: { position:"absolute", width:400, height:400, borderRadius:"50%", background:`radial-gradient(circle, ${C.blush}44 0%, transparent 65%)`, bottom:-100, right:-80, pointerEvents:"none", animation:"float 14s ease-in-out infinite" },
-  shape3: { position:"absolute", width:250, height:250, borderRadius:"50%", background:`radial-gradient(circle, ${C.tealLight} 0%, transparent 70%)`, top:"40%", right:"38%", pointerEvents:"none", animation:"float 10s ease-in-out infinite 3s" },
-
+  shape2: { position:"absolute", width:400, height:400, borderRadius:"50%", background:`radial-gradient(circle, ${C.blush}44 0%, transparent 65%)`, bottom:-100, right:-80, pointerEvents:"none" },
+  shape3: { position:"absolute", width:250, height:250, borderRadius:"50%", background:`radial-gradient(circle, ${C.tealLight} 0%, transparent 70%)`, top:"40%", right:"38%", pointerEvents:"none" },
   wrapper: { display:"flex", width:"100%", position:"relative", zIndex:1 },
-
-  left: { flex:"0 0 46%", background:`linear-gradient(155deg, ${C.navy} 0%, #1A2440 60%, #152038 100%)`, display:"flex", alignItems:"center", justifyContent:"center", padding:56, position:"relative", overflow:"hidden" },
-  leftContent: { display:"flex", flexDirection:"column", gap:44, maxWidth:380, animation:"fadeUp 0.7s ease" },
-
+  left: { background:`linear-gradient(155deg, ${C.navy} 0%, #1A2440 60%, #152038 100%)`, display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden" },
+  leftContent: { display:"flex", flexDirection:"column", maxWidth:380, width:"100%" },
   brand: { display:"flex", alignItems:"center", gap:12 },
   brandIcon: { width:48, height:48, borderRadius:14, background:`rgba(${parseInt(C.teal.slice(1,3),16)},${parseInt(C.teal.slice(3,5),16)},${parseInt(C.teal.slice(5,7),16)},0.2)`, border:`1px solid rgba(255,255,255,0.15)`, display:"flex", alignItems:"center", justifyContent:"center" },
   brandName: { color:C.white, fontSize:22, fontWeight:600, letterSpacing:"-0.3px" },
-
   heroBlock: {},
   heroEyebrow: { fontSize:12, letterSpacing:"2px", textTransform:"uppercase", color:C.blush, fontWeight:500, marginBottom:14 },
-  heroH1: { fontFamily:font.display, fontSize:52, color:C.white, lineHeight:1.18, marginBottom:18, fontStyle:"normal" },
+  heroH1: { fontFamily:font.display, fontSize:52, color:C.white, lineHeight:1.18, marginBottom:18 },
   heroSub: { color:"rgba(255,255,255,0.62)", fontSize:15, lineHeight:1.8, maxWidth:320 },
-
   pillsRow: { display:"flex", flexWrap:"wrap", gap:8 },
   pill: { padding:"6px 14px", borderRadius:20, background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.14)", color:"rgba(255,255,255,0.8)", fontSize:13 },
-
-  quoteCard: { background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderLeft:`3px solid ${C.blush}`, borderRadius:"0 12px 12px 0", padding:"16px 20px", backdropFilter:"blur(10px)" },
+  quoteCard: { background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderLeft:`3px solid ${C.blush}`, borderRadius:"0 12px 12px 0", padding:"16px 20px" },
   quoteText: { color:"rgba(255,255,255,0.7)", fontSize:14, lineHeight:1.7, fontStyle:"italic" },
-
-  right: { flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:"48px 64px" },
-  formCard: { width:"100%", maxWidth:420, animation:"fadeUp 0.6s ease 0.1s both" },
-
+  right: { flex:1, display:"flex", alignItems:"center", justifyContent:"center" },
+  formCard: { width:"100%" },
   formTop: { marginBottom:32 },
   formEyebrow: { fontSize:12, letterSpacing:"2px", textTransform:"uppercase", color:C.teal, fontWeight:600, marginBottom:10 },
-  formTitle: { fontFamily:font.display, fontSize:36, color:C.navy, lineHeight:1.2, marginBottom:8 },
+  formTitle: { fontFamily:font.display, color:C.navy, lineHeight:1.2, marginBottom:8 },
   formSub: { fontSize:14, color:C.textMuted, lineHeight:1.6 },
-
   errorBox: { display:"flex", alignItems:"center", gap:10, background:C.terraLight, border:`1px solid #F0C0C0`, borderRadius:10, padding:"12px 16px", marginBottom:20, color:C.terraDark, fontSize:14 },
   errorDot: { minWidth:22, height:22, borderRadius:"50%", background:C.terra, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700 },
-
   field: { marginBottom:20 },
   label: { display:"block", fontSize:13, color:C.navy, fontWeight:500, marginBottom:8 },
   inputBox: { display:"flex", alignItems:"center", gap:10, background:C.white, border:`1.5px solid ${C.border}`, borderRadius:12, padding:"0 16px", height:52, transition:"border-color 0.2s, box-shadow 0.2s" },
   inputFocus: { borderColor:C.teal, boxShadow:`0 0 0 4px ${C.tealLight}80` },
   input: { flex:1, border:"none", outline:"none", fontSize:15, color:C.navy, background:"transparent" },
-
-  btn: { width:"100%", height:52, background:`linear-gradient(135deg, ${C.teal} 0%, ${C.tealDark} 100%)`, color:C.white, border:"none", borderRadius:12, fontSize:16, fontWeight:600, cursor:"pointer", letterSpacing:"0.2px", boxShadow:`0 8px 24px ${C.teal}40`, transition:"opacity 0.2s" },
+  btn: { width:"100%", height:52, background:`linear-gradient(135deg, ${C.teal} 0%, ${C.tealDark} 100%)`, color:C.white, border:"none", borderRadius:12, fontSize:16, fontWeight:600, cursor:"pointer", boxShadow:`0 8px 24px ${C.teal}40` },
   btnDisabled: { width:"100%", height:52, background:C.sage, color:C.white, border:"none", borderRadius:12, fontSize:16, cursor:"not-allowed", display:"flex", alignItems:"center", justifyContent:"center", gap:8 },
   spinner: { width:16, height:16, borderRadius:"50%", border:`2px solid rgba(255,255,255,0.3)`, borderTopColor:C.white, animation:"spin 0.8s linear infinite", display:"inline-block" },
-
   divRow: { display:"flex", alignItems:"center", gap:12, margin:"20px 0" },
   divLine: { flex:1, height:1, background:C.border },
   divText: { color:C.textLight, fontSize:13 },
-
   btnGhost: { width:"100%", height:48, background:"transparent", color:C.teal, border:`1.5px solid ${C.teal}`, borderRadius:12, fontSize:15, fontWeight:500, cursor:"pointer" },
-
   footNote: { textAlign:"center", fontSize:13, color:C.textLight, marginTop:18 },
   footLink: { color:C.teal, fontWeight:600, cursor:"pointer", textDecoration:"underline", textUnderlineOffset:3 },
 };

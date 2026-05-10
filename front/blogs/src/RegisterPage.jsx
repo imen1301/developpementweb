@@ -3,12 +3,23 @@ import { C, font, GOOGLE_FONTS } from "./theme/theme.js";
 
 const API = "http://localhost:8000/api";
 
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useState(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  });
+  return isMobile;
+};
+
 export default function RegisterPage({ goToLogin }) {
-  const [form, setForm] = useState({ name:"", email:"", password:"", password_confirmation:"" });
-  const [error, setError] = useState("");
+  const [form, setForm]       = useState({ name:"", email:"", password:"", password_confirmation:"" });
+  const [error, setError]     = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState("");
+  const isMobile              = useIsMobile();
 
   const handleSubmit = async () => {
     if (!form.name || !form.email || !form.password) { setError("Tous les champs obligatoires doivent être remplis."); return; }
@@ -16,8 +27,9 @@ export default function RegisterPage({ goToLogin }) {
     if (form.password.length < 8) { setError("Le mot de passe doit contenir au moins 8 caractères."); return; }
     setLoading(true); setError("");
     try {
-      const res = await fetch(`${API}/register`, {
-        method:"POST", headers:{"Content-Type":"application/json"},
+      const res  = await fetch(`${API}/register`, {
+        method:"POST",
+        headers:{"Content-Type":"application/json","Accept":"application/json"},
         body: JSON.stringify(form),
       });
       const data = await res.json();
@@ -46,15 +58,20 @@ export default function RegisterPage({ goToLogin }) {
   return (
     <div style={s.bg}>
       <style>{GOOGLE_FONTS}</style>
-
       <div style={s.shape1} />
       <div style={s.shape2} />
       <div style={s.shape3} />
 
-      <div style={s.wrapper}>
+      <div style={{ ...s.wrapper, flexDirection: isMobile ? "column" : "row" }}>
+
         {/* ── Left panel ── */}
-        <div style={s.left}>
-          <div style={s.leftContent}>
+        <div style={{
+          ...s.left,
+          flex: isMobile ? "none" : "0 0 44%",
+          padding: isMobile ? "28px 24px" : "52px",
+          minHeight: isMobile ? "auto" : "100vh",
+        }}>
+          <div style={{ ...s.leftContent, gap: isMobile ? 20 : 36 }}>
 
             <div style={s.brand}>
               <div style={s.brandIcon}>
@@ -71,45 +88,56 @@ export default function RegisterPage({ goToLogin }) {
 
             <div>
               <p style={s.heroEyebrow}>Nouveau membre</p>
-              <h1 style={s.heroH1}>Rejoignez<br/><em style={{color:C.sage}}>NoteFlow.</em></h1>
-              <p style={s.heroSub}>Créez votre espace personnel et commencez à organiser vos idées dès aujourd'hui.</p>
+              <h1 style={{ ...s.heroH1, fontSize: isMobile ? 28 : 46 }}>
+                Rejoignez<br/><em style={{color:C.sage}}>NoteFlow.</em>
+              </h1>
+              <p style={{ ...s.heroSub, fontSize: isMobile ? 13 : 14 }}>
+                Créez votre espace personnel et commencez à organiser vos idées dès aujourd'hui.
+              </p>
             </div>
 
-            {/* Steps */}
-            <div style={s.steps}>
-              {[
-                { num:"01", title:"Créer un compte", desc:"Remplissez le formulaire en quelques secondes" },
-                { num:"02", title:"Se connecter",    desc:"Accédez à votre tableau de bord sécurisé" },
-                { num:"03", title:"Gérer vos notes", desc:"Ajoutez, modifiez, classez par priorité" },
-              ].map((step, i) => (
-                <div key={i} style={s.step}>
-                  <div style={s.stepNum}>{step.num}</div>
-                  <div>
-                    <p style={s.stepTitle}>{step.title}</p>
-                    <p style={s.stepDesc}>{step.desc}</p>
+            {/* Étapes — cachées sur mobile */}
+            {!isMobile && (
+              <div style={s.steps}>
+                {[
+                  { num:"01", title:"Créer un compte", desc:"Remplissez le formulaire en quelques secondes" },
+                  { num:"02", title:"Se connecter",    desc:"Accédez à votre tableau de bord sécurisé" },
+                  { num:"03", title:"Gérer vos notes", desc:"Ajoutez, modifiez, classez par priorité" },
+                ].map((step, i) => (
+                  <div key={i} style={s.step}>
+                    <div style={s.stepNum}>{step.num}</div>
+                    <div>
+                      <p style={s.stepTitle}>{step.title}</p>
+                      <p style={s.stepDesc}>{step.desc}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={s.accentBadge}>
-              <span style={s.accentEmoji}>🎯</span>
-              <div>
-                <p style={s.accentTitle}>Gratuit & sans limite</p>
-                <p style={s.accentDesc}>Créez autant de notes que vous voulez.</p>
+                ))}
               </div>
-            </div>
+            )}
 
+            {!isMobile && (
+              <div style={s.accentBadge}>
+                <span style={s.accentEmoji}>🎯</span>
+                <div>
+                  <p style={s.accentTitle}>Gratuit & sans limite</p>
+                  <p style={s.accentDesc}>Créez autant de notes que vous voulez.</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* ── Right panel (form) ── */}
-        <div style={s.right}>
-          <div style={s.formCard}>
+        <div style={{
+          ...s.right,
+          padding: isMobile ? "28px 20px 48px" : "48px 64px",
+          overflowY: "auto",
+        }}>
+          <div style={{ ...s.formCard, maxWidth: isMobile ? "100%" : 440 }}>
 
             <div style={s.formTop}>
               <p style={s.formEyebrow}>Inscription</p>
-              <h2 style={s.formTitle}>Créer un compte</h2>
+              <h2 style={{ ...s.formTitle, fontSize: isMobile ? 26 : 34 }}>Créer un compte</h2>
               <p style={s.formSub}>Tous les champs marqués * sont obligatoires.</p>
             </div>
 
@@ -199,47 +227,36 @@ export default function RegisterPage({ goToLogin }) {
 
 const s = {
   bg: { minHeight:"100vh", background:C.offwhite, display:"flex", alignItems:"stretch", position:"relative", overflow:"hidden", fontFamily:font.body },
-
-  shape1: { position:"absolute", width:500, height:500, borderRadius:"50%", background:`radial-gradient(circle, ${C.tealLight} 0%, transparent 65%)`, top:-150, right:-100, pointerEvents:"none", animation:"float 13s ease-in-out infinite" },
-  shape2: { position:"absolute", width:350, height:350, borderRadius:"50%", background:`radial-gradient(circle, ${C.sageLight} 0%, transparent 65%)`, bottom:-80, left:"30%", pointerEvents:"none", animation:"float 10s ease-in-out infinite 2s" },
+  shape1: { position:"absolute", width:500, height:500, borderRadius:"50%", background:`radial-gradient(circle, ${C.tealLight} 0%, transparent 65%)`, top:-150, right:-100, pointerEvents:"none" },
+  shape2: { position:"absolute", width:350, height:350, borderRadius:"50%", background:`radial-gradient(circle, ${C.sageLight||C.sage} 0%, transparent 65%)`, bottom:-80, left:"30%", pointerEvents:"none" },
   shape3: { position:"absolute", width:250, height:250, borderRadius:"50%", background:`radial-gradient(circle, ${C.blushLight} 0%, transparent 70%)`, top:"35%", right:"42%", pointerEvents:"none" },
-
   wrapper: { display:"flex", width:"100%", position:"relative", zIndex:1 },
-
-  left: { flex:"0 0 44%", background:`linear-gradient(155deg, ${C.navy} 0%, #1A2440 60%, #152038 100%)`, display:"flex", alignItems:"center", justifyContent:"center", padding:52, overflow:"hidden" },
-  leftContent: { display:"flex", flexDirection:"column", gap:36, maxWidth:360, animation:"fadeUp 0.7s ease" },
-
+  left: { background:`linear-gradient(155deg, ${C.navy} 0%, #1A2440 60%, #152038 100%)`, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" },
+  leftContent: { display:"flex", flexDirection:"column", maxWidth:360, width:"100%" },
   brand: { display:"flex", alignItems:"center", gap:12 },
   brandIcon: { width:48, height:48, borderRadius:14, background:`${C.teal}30`, border:`1px solid rgba(255,255,255,0.14)`, display:"flex", alignItems:"center", justifyContent:"center" },
   brandName: { color:C.white, fontSize:22, fontWeight:600 },
-
   heroEyebrow: { fontSize:12, letterSpacing:"2px", textTransform:"uppercase", color:C.blush, fontWeight:500, marginBottom:12 },
-  heroH1: { fontFamily:font.display, fontSize:46, color:C.white, lineHeight:1.2, marginBottom:14 },
-  heroSub: { color:"rgba(255,255,255,0.62)", fontSize:14, lineHeight:1.8 },
-
+  heroH1: { fontFamily:font.display, color:C.white, lineHeight:1.2, marginBottom:14 },
+  heroSub: { color:"rgba(255,255,255,0.62)", lineHeight:1.8 },
   steps: { display:"flex", flexDirection:"column", gap:20 },
   step: { display:"flex", alignItems:"flex-start", gap:16 },
-  stepNum: { minWidth:36, height:36, borderRadius:10, background:`${C.teal}30`, border:`1px solid ${C.teal}60`, display:"flex", alignItems:"center", justifyContent:"center", color:C.blush, fontSize:12, fontWeight:700, letterSpacing:"0.5px" },
+  stepNum: { minWidth:36, height:36, borderRadius:10, background:`${C.teal}30`, border:`1px solid ${C.teal}60`, display:"flex", alignItems:"center", justifyContent:"center", color:C.blush, fontSize:12, fontWeight:700 },
   stepTitle: { color:C.white, fontSize:14, fontWeight:500, marginBottom:3 },
   stepDesc: { color:"rgba(255,255,255,0.5)", fontSize:12, lineHeight:1.6 },
-
   accentBadge: { display:"flex", alignItems:"center", gap:14, background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:14, padding:"14px 18px" },
   accentEmoji: { fontSize:24 },
   accentTitle: { color:C.white, fontSize:14, fontWeight:600, marginBottom:3 },
   accentDesc: { color:"rgba(255,255,255,0.55)", fontSize:12 },
-
-  right: { flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:"48px 64px", overflowY:"auto" },
-  formCard: { width:"100%", maxWidth:440, animation:"fadeUp 0.6s ease 0.1s both" },
-
+  right: { flex:1, display:"flex", alignItems:"center", justifyContent:"center" },
+  formCard: { width:"100%" },
   formTop: { marginBottom:28 },
   formEyebrow: { fontSize:12, letterSpacing:"2px", textTransform:"uppercase", color:C.teal, fontWeight:600, marginBottom:10 },
-  formTitle: { fontFamily:font.display, fontSize:34, color:C.navy, lineHeight:1.2, marginBottom:8 },
+  formTitle: { fontFamily:font.display, color:C.navy, lineHeight:1.2, marginBottom:8 },
   formSub: { fontSize:13, color:C.textMuted, lineHeight:1.5 },
-
   errorBox:   { display:"flex", alignItems:"center", gap:10, background:C.terraLight, border:`1px solid #F0C0C0`, borderRadius:10, padding:"12px 16px", marginBottom:16, color:C.terraDark, fontSize:14 },
   successBox: { display:"flex", alignItems:"center", gap:10, background:C.tealLight,  border:`1px solid ${C.sage}`,    borderRadius:10, padding:"12px 16px", marginBottom:16, color:C.tealDark,  fontSize:14 },
   msgIcon: { fontSize:16, flexShrink:0 },
-
   field: { marginBottom:18 },
   label: { display:"block", fontSize:13, color:C.navy, fontWeight:500, marginBottom:7 },
   req: { color:C.terra },
@@ -247,16 +264,13 @@ const s = {
   inputBox: { display:"flex", alignItems:"center", gap:10, background:C.white, border:`1.5px solid ${C.border}`, borderRadius:12, padding:"0 16px", height:52, transition:"all 0.2s" },
   inputFocus: { borderColor:C.teal, boxShadow:`0 0 0 4px ${C.tealLight}80` },
   input: { flex:1, border:"none", outline:"none", fontSize:15, color:C.navy, background:"transparent" },
-
   strengthWrap: { display:"flex", alignItems:"center", gap:10, marginTop:6 },
   strengthBg: { flex:1, height:4, background:C.border, borderRadius:4, overflow:"hidden" },
   strengthFill: { height:"100%", borderRadius:4, transition:"width 0.4s, background 0.4s" },
   strengthLabel: { fontSize:12, fontWeight:500, minWidth:40 },
-
   btn: { width:"100%", height:52, background:`linear-gradient(135deg, ${C.teal}, ${C.tealDark})`, color:C.white, border:"none", borderRadius:12, fontSize:16, fontWeight:600, cursor:"pointer", boxShadow:`0 8px 24px ${C.teal}40`, display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginTop:4 },
   btnDisabled: { width:"100%", height:52, background:C.sage, color:C.white, border:"none", borderRadius:12, fontSize:16, cursor:"not-allowed", display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginTop:4 },
   spinner: { width:16, height:16, borderRadius:"50%", border:`2px solid rgba(255,255,255,0.3)`, borderTopColor:C.white, animation:"spin 0.8s linear infinite" },
-
   footNote: { textAlign:"center", fontSize:13, color:C.textLight, marginTop:20 },
   footLink: { color:C.teal, fontWeight:600, cursor:"pointer", textDecoration:"underline", textUnderlineOffset:3 },
 };
